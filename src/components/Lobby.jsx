@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { startBGM } from '../game/audio.js';
 
 export default function Lobby({ onCreateRoom, onJoinRoom, onDevMode, lobbyState, isLocalHost, onStartGame, connected, status, error }) {
   const [name, setName] = useState('');
@@ -7,6 +8,16 @@ export default function Lobby({ onCreateRoom, onJoinRoom, onDevMode, lobbyState,
   const [showDevPass, setShowDevPass] = useState(false);
   const [devPass, setDevPass] = useState('');
   const [devPassError, setDevPassError] = useState('');
+
+  useEffect(() => {
+    const handler = () => startBGM();
+    window.addEventListener('click', handler, { once: true });
+    window.addEventListener('keydown', handler, { once: true });
+    return () => {
+      window.removeEventListener('click', handler);
+      window.removeEventListener('keydown', handler);
+    };
+  }, []);
 
   function handleCreate() {
     if (!name.trim()) { setLocalError('Enter your name first'); return; }

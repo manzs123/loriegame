@@ -30,11 +30,14 @@ export default function GameMap({ state, myCharId, devMode: devModeProp = false 
     function resize() {
       const w = parent.clientWidth;
       const h = parent.clientHeight;
+      if (w <= 0 || h <= 0) return;
       const scale = Math.min(w / CANVAS_W, h / CANVAS_H);
       canvas.style.width  = Math.floor(CANVAS_W * scale) + 'px';
       canvas.style.height = Math.floor(CANVAS_H * scale) + 'px';
     }
+    // Fire immediately AND after first layout paint to catch any deferred flex sizing
     resize();
+    requestAnimationFrame(resize);
     const ro = new ResizeObserver(resize);
     ro.observe(parent);
     return () => ro.disconnect();
@@ -186,11 +189,13 @@ function drawFrame(ctx, state, myCharId, devMode = false, time = 0) {
     state.bodies.forEach(body => drawBody(ctx, body));
   }
 
-  // Draw players
+  // Draw players — ghost mode: dead players invisible to alive viewers
   if (state.players) {
+    const viewerAlive = me ? me.alive !== false : true;
     state.players.forEach(player => {
       const isMe = player.charId === myCharId;
-      drawPlayer(ctx, player, isMe, time);
+      if (!player.alive && viewerAlive && !isMe) return;
+      drawPlayer(ctx, player, isMe, time, !viewerAlive);
     });
   }
 
@@ -227,7 +232,8 @@ function drawFrame(ctx, state, myCharId, devMode = false, time = 0) {
       const viewRadius = state.electricityOn === false ? 200 : 400;
       drawFogLOS(ctx, myPos.x, myPos.y, viewRadius, WALLS, camX, camY, zoom, true);
     } else if (me && !me.alive) {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      // Dead viewers see the full map with a faint ghost tint
+      ctx.fillStyle = 'rgba(80,0,180,0.08)';
       ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     }
   }
@@ -486,12 +492,12 @@ function drawBody(ctx, body) {
   ctx.globalAlpha = 1;
 }
 
-function drawPlayer(ctx, player, isMe, time = 0) {
+function drawPlayer(ctx, player, isMe, time = 0, viewerIsDead = false) {
   const x = player.pos.x;
   const y = player.pos.y;
 
   if (!player.alive) {
-    drawDeadPlayer(ctx, x, y, player.color || '#888');
+    drawGhostPlayer(ctx, player, isMe);
     return;
   }
 
@@ -583,17 +589,43 @@ function drawPlayer(ctx, player, isMe, time = 0) {
   }
 }
 
-function drawDeadPlayer(ctx, x, y, color) {
-  ctx.globalAlpha = 0.3;
+function drawGhostPlayer(ctx, player, isMe) {
+  const x = player.pos.x;
+  const y = player.pos.y;
+  const color = player.color || '#8888bb';
+  const s = isMe ? 12 : 10;
+
+  ctx.save();
+  ctx.globalAlpha = isMe ? 0.55 : 0.28;
+
+  // Ghost body (desaturated, shrunk)
   ctx.fillStyle = color;
-  // Fallen body (horizontal)
-  ctx.fillRect(x - 10, y - 3, 20, 6);
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = '#777';
-  ctx.font = '10px sans-serif';
+  ctx.fillRect(x - s/2, y - s/2 + 2, s, s + 2);
+
+  // Ghost head
+  ctx.fillRect(x - s/2 - 1, y - s/2 - 6, s + 2, s);
+
+  // Glowing eyes
+  ctx.globalAlpha = isMe ? 0.9 : 0.5;
+  ctx.fillStyle = '#aaaaff';
+  ctx.fillRect(x - 4, y - s/2 - 4, 3, 3);
+  ctx.fillRect(x + 1, y - s/2 - 4, 3, 3);
+
+  // Ghost trail / wavy bottom
+  ctx.globalAlpha = isMe ? 0.35 : 0.15;
+  ctx.fillStyle = color;
+  ctx.fillRect(x - 6, y + s/2 + 2, 4, 5);
+  ctx.fillRect(x - 1, y + s/2 + 4, 4, 3);
+  ctx.fillRect(x + 3, y + s/2 + 2, 4, 5);
+
+  // Name label
+  ctx.globalAlpha = isMe ? 0.7 : 0.35;
+  ctx.fillStyle = '#aaaacc';
+  ctx.font = '5px "Press Start 2P", monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('✝', x, y + 4);
-  ctx.globalAlpha = 1;
+  ctx.fillText((isMe ? '▶ ' : '') + player.name, x, y - s - 5);
+
+  ctx.restore();
 }
 
 function drawDayHUD(ctx, state, camX, camY) {

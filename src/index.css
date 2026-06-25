@@ -164,9 +164,12 @@ body {
 .game-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* dynamic viewport — excludes browser address bar */
   width: 100vw;
   overflow: hidden;
   background: #0a0a0f;
+  padding: 20px;
+  gap: 8px;
 }
 
 .game-canvas-wrap {
@@ -176,6 +179,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  min-height: 0;
 }
 
 .game-canvas {
@@ -184,16 +189,37 @@ body {
 
 /* ---- SIDE PANEL ---- */
 .side-panel {
-  width: 220px;
-  min-width: 220px;
+  width: 360px;
+  min-width: 360px;
   background: #0d1117;
-  border-left: 2px solid #1e3a5f;
+  border: 2px solid #1e3a5f;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  font-size: 8px;
+  min-height: 0; /* allow flex to shrink so overflow-y works on children */
+}
+
+.side-panel-info {
+  width: 155px;
+  min-width: 155px;
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  gap: 12px;
+  gap: 8px;
+  padding: 10px;
   overflow-y: auto;
-  font-size: 8px;
+  border-right: 1px solid #1e3a5f;
+  min-height: 0;
+}
+
+.side-panel-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .panel-section {
@@ -294,6 +320,49 @@ body {
 .msg-success { border-color: #2ecc71; color: #a8e6cf; background: #0a1a0a; }
 .msg-warning { border-color: #f39c12; color: #ffe082; background: #1a1200; }
 .msg-broadcast { border-color: #9b59b6; color: #ce93d8; background: #120a1a; }
+
+/* ---- CHAT ---- */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.chat-messages-wrap {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 2px;
+  min-height: 0;
+  transition: max-height 0.2s ease, opacity 0.2s;
+}
+
+.chat-msg {
+  font-size: 6px;
+  padding: 3px 4px;
+  border-left: 2px solid #3498db;
+  color: #bdc3c7;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.chat-msg-ghost {
+  border-left-color: #555577;
+  color: #7777aa;
+  background: #0a0a14;
+  font-style: italic;
+}
+
+.chat-day { color: #555; }
+.chat-sender { }
+.chat-input-row {
+  margin-top: 6px;
+  display: flex;
+  gap: 4px;
+}
 
 /* ---- MODAL OVERLAYS ---- */
 .modal-bg {
@@ -777,11 +846,13 @@ body {
 
 /* ---- RESPONSIVE LAYOUT ---- */
 @media (max-width: 768px) {
-  /* Game layout stays flex-row — canvas fills 100% of viewport */
+  /* Remove desktop padding — canvas should fill the viewport */
   .game-layout {
     position: fixed;
     inset: 0;
     overflow: hidden;
+    padding: 0;
+    gap: 0;
   }
 
   /* Canvas wrap fills entire screen */
@@ -830,15 +901,44 @@ body {
     transform: translateY(0);
   }
 
+  /* Mobile: single column, chat on top */
   .side-panel {
+    flex-direction: column;
     width: 100%;
     min-width: unset;
-    max-height: 52vh;
-    border-left: none;
+    max-height: 55vh;
+    border: none;
     border-top: 2px solid #1e3a5f;
     overflow-y: auto;
-    flex-direction: column;
-    padding: 10px;
+  }
+
+  .side-panel-info {
+    width: 100%;
+    min-width: unset;
+    border-right: none;
+    border-top: 1px solid #1e3a5f;
+    order: 2;
+  }
+
+  .side-panel-chat {
+    order: 1;
+    padding: 8px 10px 4px;
+    min-height: 60px;
+  }
+
+  /* Mobile chat: messages hidden by default, shown on focus or new msg */
+  .chat-messages-wrap {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    flex: none;
+    transition: max-height 0.22s ease, opacity 0.18s;
+  }
+
+  .chat-messages-wrap.visible {
+    max-height: 130px;
+    opacity: 1;
+    overflow-y: auto;
   }
 
   .mobile-dpad {

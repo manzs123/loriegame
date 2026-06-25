@@ -2,7 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 
 export default function Chat({ messages, onSend, playerAlive, day }) {
   const [text, setText] = useState('');
+  const [messagesVisible, setMessagesVisible] = useState(false);
   const listRef = useRef(null);
+  const inputFocusedRef = useRef(false);
+  const hideTimerRef = useRef(null);
 
   useEffect(() => {
     if (listRef.current) {
@@ -10,64 +13,81 @@ export default function Chat({ messages, onSend, playerAlive, day }) {
     }
   }, [messages]);
 
+  // Auto-show messages for 3s when a new one arrives (mobile)
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+    setMessagesVisible(true);
+    clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      if (!inputFocusedRef.current) setMessagesVisible(false);
+    }, 3000);
+    return () => clearTimeout(hideTimerRef.current);
+  }, [messages?.length]);
+
   function handleSend() {
     const t = text.trim();
-    if (!t || !playerAlive) return;
+    if (!t) return;
     onSend(t);
     setText('');
   }
 
+  function handleFocus() {
+    inputFocusedRef.current = true;
+    clearTimeout(hideTimerRef.current);
+    setMessagesVisible(true);
+  }
+
+  function handleBlur() {
+    inputFocusedRef.current = false;
+    hideTimerRef.current = setTimeout(() => {
+      if (!inputFocusedRef.current) setMessagesVisible(false);
+    }, 600);
+  }
+
+  const isGhost = !playerAlive;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <div className="panel-title">CHAT</div>
+    <div className="chat-container">
+      <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        CHAT
+        {isGhost && <span style={{ color: '#7777aa', fontSize: 6 }}>✝ GHOST</span>}
+      </div>
+
       <div
         ref={listRef}
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
-          paddingRight: 2,
-          minHeight: 0,
-          maxHeight: 160,
-        }}
+        className={`chat-messages-wrap${messagesVisible ? ' visible' : ''}`}
       >
         {messages && messages.map((msg, i) => (
           <div
             key={i}
-            style={{
-              fontSize: 6,
-              padding: '3px 4px',
-              borderLeft: `2px solid ${msg.isDead ? '#555' : '#3498db'}`,
-              color: msg.isDead ? '#555' : '#bdc3c7',
-              wordBreak: 'break-word',
-              lineHeight: 1.6,
-            }}
+            className={`chat-msg${msg.isDead ? ' chat-msg-ghost' : ''}`}
           >
-            <span style={{ color: '#555' }}>[D{msg.day}] </span>
-            <span style={{ color: msg.isDead ? '#666' : '#f39c12' }}>{msg.senderName}:</span>
+            <span className="chat-day">[D{msg.day}] </span>
+            <span className="chat-sender" style={{ color: msg.isDead ? '#7777aa' : '#f39c12' }}>
+              {msg.isDead ? '✝ ' : ''}{msg.senderName}:
+            </span>
             {' '}{msg.text}
           </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 4, display: 'flex', gap: 4 }}>
+      <div className="chat-input-row">
         <input
           type="text"
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
-          disabled={!playerAlive}
-          placeholder={playerAlive ? 'Type message...' : 'You are dead'}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder={isGhost ? '✝ Ghost chat...' : 'Type message...'}
           maxLength={100}
           style={{
             flex: 1,
             fontFamily: 'var(--pixel)',
             fontSize: 6,
             background: '#0a0a0f',
-            border: `1px solid ${playerAlive ? '#1e3a5f' : '#333'}`,
-            color: playerAlive ? '#ecf0f1' : '#555',
+            border: `1px solid ${isGhost ? '#4444aa' : '#1e3a5f'}`,
+            color: isGhost ? '#8888cc' : '#ecf0f1',
             padding: '5px',
             outline: 'none',
             minWidth: 0,
@@ -76,7 +96,7 @@ export default function Chat({ messages, onSend, playerAlive, day }) {
         <button
           className="btn"
           onClick={handleSend}
-          disabled={!playerAlive || !text.trim()}
+          disabled={!text.trim()}
           style={{ fontSize: 5, padding: '4px 6px' }}
         >
           ▶

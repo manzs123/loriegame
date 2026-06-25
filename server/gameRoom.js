@@ -909,17 +909,32 @@ class GameRoom {
     if (!text || typeof text !== 'string') return;
     const player = this.getPlayerBySocket(socketId);
     if (!player) return;
-    if (!player.alive) return; // dead can't chat
 
     const truncated = text.substring(0, 100);
+    const isDead = !player.alive;
     const msg = {
       type: 'CHAT_MSG',
       senderName: player.name,
       text: truncated,
       day: this.state ? this.state.day : 0,
-      isDead: false,
+      isDead,
     };
-    this.broadcast(msg);
+
+    if (isDead) {
+      // Ghost chat — only dead players receive it
+      this.clients.forEach((client, id) => {
+        if (client.ws.readyState !== 1) return;
+        const p = this.state.players.find(q => q.socketId === id);
+        if (p && !p.alive) client.ws.send(JSON.stringify(msg));
+      });
+    } else {
+      // Normal chat — only alive players receive it
+      this.clients.forEach((client, id) => {
+        if (client.ws.readyState !== 1) return;
+        const p = this.state.players.find(q => q.socketId === id);
+        if (!p || p.alive) client.ws.send(JSON.stringify(msg));
+      });
+    }
   }
 
   handleBroadcast(socketId, text) {
