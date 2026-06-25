@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 
-const WS_URL = 'ws://localhost:3001';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 const RECONNECT_INTERVAL = 2000;
 
 export function useSocket(onMessage) {

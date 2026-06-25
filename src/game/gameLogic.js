@@ -1,4 +1,7 @@
-import { CHARACTERS, ROOMS, TASKS, MAP_W, MAP_H, ROOM_SIZE, roomPx } from './constants.js';
+import { CHARACTERS } from './constants.js';
+import { ROOMS, TASKS, MAP_W, MAP_H } from './mapData.js';
+
+const roomPx = r => r;
 
 function randomPos(room) {
   const p = roomPx(room);
