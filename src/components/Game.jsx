@@ -11,6 +11,8 @@ import FlowerModal from './FlowerModal.jsx';
 import SkillTargetModal from './SkillTargetModal.jsx';
 import TeleportModal from './TeleportModal.jsx';
 import GameOver from './GameOver.jsx';
+import EjectionModal from './EjectionModal.jsx';
+import { sfxKill, sfxSkill, sfxBodyFound, sfxSabotage, startBGM, setBGMTense, sfxVoteStart, sfxEjection } from '../game/audio.js';
 
 const TASK_INTERACT_RADIUS = 60;
 const BODY_INTERACT_RADIUS = 80;
@@ -37,7 +39,72 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
   const [feedback, setFeedback] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
 
+  // Ejection animation state
+  const prevEjectedRef = useRef(null);
+  const prevReviewRef = useRef(false);
+  const [ejectionData, setEjectionData] = useState(null);
+
+  // Mobile D-pad refs
+  const mobileDxRef = useRef(0);
+  const mobileDyRef = useRef(0);
+
+  // Electricity tracking
+  const prevElecRef = useRef(true);
+
   const myCharDef = CHARACTERS.find(c => c.id === myCharId);
+
+  // Start BGM on mount
+  useEffect(() => {
+    startBGM();
+  }, []);
+
+  // Track electricity for audio
+  useEffect(() => {
+    if (!gameState) return;
+    const wasOn = prevElecRef.current;
+    const isOn = gameState.electricityOn !== false;
+    if (wasOn && !isOn) {
+      sfxSabotage();
+      setBGMTense(true);
+    }
+    if (!wasOn && isOn) {
+      setBGMTense(false);
+    }
+    prevElecRef.current = isOn;
+  }, [gameState?.electricityOn]);
+
+  // Track review start for audio
+  const prevReviewActiveRef = useRef(false);
+  useEffect(() => {
+    if (!gameState) return;
+    const wasReview = prevReviewActiveRef.current;
+    const isReview = gameState.reviewActive;
+    if (!wasReview && isReview) {
+      sfxVoteStart();
+    }
+    prevReviewActiveRef.current = isReview;
+  }, [gameState?.reviewActive]);
+
+  // Ejection detection
+  useEffect(() => {
+    if (!gameState) return;
+    const wasReview = prevReviewRef.current;
+    const isReview = gameState.reviewActive;
+    const ejected = gameState.ejected;
+
+    if (wasReview && !isReview && ejected && ejected !== prevEjectedRef.current) {
+      const allPlayers = gameState.players || [];
+      const ejectedPlayer = allPlayers.find(p => p.charId === ejected);
+      sfxEjection();
+      setEjectionData({
+        ejectedCharId: ejected,
+        ejectedName: ejectedPlayer?.name || ejected,
+        wasVillain: ejectedPlayer?.isVillain || (ejected === 'lorie'),
+      });
+      prevEjectedRef.current = ejected;
+    }
+    prevReviewRef.current = isReview;
+  }, [gameState?.reviewActive, gameState?.ejected]);
 
   const handleServerEvent = useCallback((msg) => {
     switch (msg.type) {
@@ -94,6 +161,7 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
       ? state.bodies.find(b => dist(b.pos, me.pos) < BODY_INTERACT_RADIUS)
       : null;
     if (nearBody) {
+      sfxBodyFound();
       send({ type: 'REPORT_BODY', bodyId: nearBody.id });
       return;
     }
@@ -104,6 +172,12 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
     }
 
     if (myCharId === 'lorie') {
+      const nearKillTarget = state.players
+        ? state.players.some(p => p.alive && p.charId !== myCharId && dist(p.pos, me.pos) < 80)
+        : false;
+      if (nearKillTarget) {
+        sfxKill();
+      }
       send({ type: 'KILL_NEARBY' });
       return;
     }
@@ -119,6 +193,8 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
     if (!state) return;
     const me = state.players.find(p => p.charId === myCharId);
     if (!me || !me.alive) return;
+
+    sfxSkill();
 
     if (myCharId === 'kai') { setKaiOpen(true); return; }
     if (myCharId === 'ela') { setBroadcastOpen(true); return; }
@@ -157,7 +233,8 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
   useEffect(() => {
     const id = setInterval(() => {
       const keys = keysRef.current;
-      let dx = 0, dy = 0;
+      let dx = mobileDxRef.current;
+      let dy = mobileDyRef.current;
       if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx = -1;
       if (keys['ArrowRight'] || keys['d'] || keys['D']) dx =  1;
       if (keys['ArrowUp']    || keys['w'] || keys['W']) dy = -1;
@@ -238,6 +315,23 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
       <div className="game-canvas-wrap">
         <GameMap state={s} myCharId={myCharId} devMode={devMode} />
 
+        {/* Dev mode character switcher */}
+        {devMode && (
+          <div className="dev-char-switcher">
+            {CHARACTERS.map(c => (
+              <button
+                key={c.id}
+                className={`dev-char-btn${myCharId === c.id ? ' active' : ''}`}
+                onClick={() => send({ type: 'DEV_SWITCH_CHAR', charId: c.id })}
+                title={c.name}
+                style={{ color: c.color, borderColor: myCharId === c.id ? c.color : '#333' }}
+              >
+                {c.name.substring(0, 3).toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Proximity hint */}
         {me && me.alive && !s?.reviewActive && !s?.winner && eActive && nearTask && (
           <div className="interact-hint">
@@ -302,6 +396,35 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
             </button>
           </div>
         )}
+
+        {/* Mobile D-pad */}
+        {me && me.alive && (
+          <div className="mobile-dpad">
+            <button className="dpad-btn dpad-up"
+              onPointerDown={() => { mobileDyRef.current = -1; }}
+              onPointerUp={() => { mobileDyRef.current = 0; }}
+              onPointerLeave={() => { mobileDyRef.current = 0; }}
+            >▲</button>
+            <div className="dpad-middle-row">
+              <button className="dpad-btn dpad-left"
+                onPointerDown={() => { mobileDxRef.current = -1; }}
+                onPointerUp={() => { mobileDxRef.current = 0; }}
+                onPointerLeave={() => { mobileDxRef.current = 0; }}
+              >◄</button>
+              <div className="dpad-center" />
+              <button className="dpad-btn dpad-right"
+                onPointerDown={() => { mobileDxRef.current = 1; }}
+                onPointerUp={() => { mobileDxRef.current = 0; }}
+                onPointerLeave={() => { mobileDxRef.current = 0; }}
+              >►</button>
+            </div>
+            <button className="dpad-btn dpad-down"
+              onPointerDown={() => { mobileDyRef.current = 1; }}
+              onPointerUp={() => { mobileDyRef.current = 0; }}
+              onPointerLeave={() => { mobileDyRef.current = 0; }}
+            >▼</button>
+          </div>
+        )}
       </div>
 
       <SidePanel
@@ -356,6 +479,15 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
         <TeleportModal
           onTeleport={handleTeleport}
           onClose={() => setTeleportOpen(false)}
+        />
+      )}
+
+      {ejectionData && (
+        <EjectionModal
+          ejectedCharId={ejectionData.ejectedCharId}
+          ejectedName={ejectionData.ejectedName}
+          wasVillain={ejectionData.wasVillain}
+          onDone={() => setEjectionData(null)}
         />
       )}
     </div>

@@ -78,8 +78,8 @@ wss.on('connection', (ws) => {
         ws.send(JSON.stringify({ type:'ERROR', message:'Game already in progress' }));
         return;
       }
-      if (room.clients.size >= 10) {
-        ws.send(JSON.stringify({ type:'ERROR', message:'Room is full' }));
+      if (room.clients.size >= 12) {
+        ws.send(JSON.stringify({ type:'ERROR', message:'Room is full (max 12)' }));
         return;
       }
       room.addClient(socketId, ws, name, false);

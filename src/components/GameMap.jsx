@@ -16,13 +16,22 @@ const ZOOM = DEV_MODE ? 0.4 : 1.5;
 export default function GameMap({ state, myCharId, devMode: devModeProp = false }) {
   const canvasRef = useRef(null);
   const devMode = devModeProp || DEV_MODE;
+  const stateRef = useRef(state);
+
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    drawFrame(ctx, state, myCharId, devMode);
-  }, [state, myCharId, devMode]);
+    let raf;
+    function loop() {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      drawFrame(ctx, stateRef.current, myCharId, devMode, performance.now());
+      raf = requestAnimationFrame(loop);
+    }
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [myCharId, devMode]);
 
   return (
     <canvas
@@ -30,7 +39,7 @@ export default function GameMap({ state, myCharId, devMode: devModeProp = false 
       width={CANVAS_W}
       height={CANVAS_H}
       className="game-canvas"
-      style={{ border: '2px solid #1e3a5f', display: 'block' }}
+      style={{ border: '2px solid #1e3a5f', display: 'block', width: '100%', height: '100%', objectFit: 'contain' }}
     />
   );
 }
@@ -65,7 +74,7 @@ function drawWalls(ctx) {
   });
 }
 
-function drawFrame(ctx, state, myCharId, devMode = false) {
+function drawFrame(ctx, state, myCharId, devMode = false, time = 0) {
   const zoom = devMode ? 0.4 : ZOOM;
 
   if (!state) {
@@ -161,7 +170,7 @@ function drawFrame(ctx, state, myCharId, devMode = false) {
   if (state.players) {
     state.players.forEach(player => {
       const isMe = player.charId === myCharId;
-      drawPlayer(ctx, player, isMe);
+      drawPlayer(ctx, player, isMe, time);
     });
   }
 
@@ -457,7 +466,7 @@ function drawBody(ctx, body) {
   ctx.globalAlpha = 1;
 }
 
-function drawPlayer(ctx, player, isMe) {
+function drawPlayer(ctx, player, isMe, time = 0) {
   const x = player.pos.x;
   const y = player.pos.y;
 
@@ -473,6 +482,9 @@ function drawPlayer(ctx, player, isMe) {
     return;
   }
 
+  // Walk bob — subtle vertical oscillation while alive
+  const bob = player.alive ? Math.sin(time / 160) * 1.8 : 0;
+
   const alpha = player.hiding ? 0.15 : 1;
   ctx.globalAlpha = alpha;
 
@@ -487,37 +499,37 @@ function drawPlayer(ctx, player, isMe) {
 
   // Legs
   ctx.fillStyle = hat;
-  ctx.fillRect(x - 5, y + s, 4, 6);
-  ctx.fillRect(x + 1, y + s, 4, 6);
+  ctx.fillRect(x - 5, y + s + bob, 4, 6);
+  ctx.fillRect(x + 1, y + s + bob, 4, 6);
 
   // Body
   ctx.fillStyle = color;
-  ctx.fillRect(x - s/2, y - s/2 + 2, s, s + 2);
+  ctx.fillRect(x - s/2, y - s/2 + 2 + bob, s, s + 2);
 
   // Backpack
   ctx.fillStyle = hat;
   ctx.globalAlpha = alpha * 0.8;
-  ctx.fillRect(x + s/2 + 1, y - 2, 4, 7);
+  ctx.fillRect(x + s/2 + 1, y - 2 + bob, 4, 7);
   ctx.globalAlpha = alpha;
 
   // Head
   ctx.fillStyle = color;
-  ctx.fillRect(x - s/2 - 1, y - s/2 - 6, s + 2, s);
+  ctx.fillRect(x - s/2 - 1, y - s/2 - 6 + bob, s + 2, s);
 
   // Hat brim
   ctx.fillStyle = hat;
-  ctx.fillRect(x - s/2 - 3, y - s/2 - 9, s + 6, 4);
-  ctx.fillRect(x - s/2 - 1, y - s/2 - 12, s + 2, 4);
+  ctx.fillRect(x - s/2 - 3, y - s/2 - 9 + bob, s + 6, 4);
+  ctx.fillRect(x - s/2 - 1, y - s/2 - 12 + bob, s + 2, 4);
 
   // Eyes
   ctx.fillStyle = '#000';
-  ctx.fillRect(x - 4, y - s/2 - 4, 3, 3);
-  ctx.fillRect(x + 1, y - s/2 - 4, 3, 3);
+  ctx.fillRect(x - 4, y - s/2 - 4 + bob, 3, 3);
+  ctx.fillRect(x + 1, y - s/2 - 4 + bob, 3, 3);
 
   // Eye shine
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x - 4, y - s/2 - 4, 1, 1);
-  ctx.fillRect(x + 1, y - s/2 - 4, 1, 1);
+  ctx.fillRect(x - 4, y - s/2 - 4 + bob, 1, 1);
+  ctx.fillRect(x + 1, y - s/2 - 4 + bob, 1, 1);
 
   ctx.shadowBlur = 0;
 
@@ -533,6 +545,7 @@ function drawPlayer(ctx, player, isMe) {
   ctx.globalAlpha = 1;
 
   // Show name above every player; highlight self with arrow
+  // Name label is NOT bobbed — stays at fixed position
   ctx.textAlign = 'center';
   if (isMe) {
     const label = `▶ ${player.charId ? (player.charId.charAt(0).toUpperCase() + player.charId.slice(1)) : player.name}`;

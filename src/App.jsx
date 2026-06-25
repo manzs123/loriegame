@@ -41,6 +41,11 @@ export default function App() {
         setGameState(prev => prev ? { ...prev, winner: msg.winner, lorieCharId: msg.lorieCharId } : prev);
         break;
 
+      case 'DEV_CHAR_CHANGED':
+        setMyCharId(msg.yourCharId);
+        setMyIsVillain(msg.yourIsVillain);
+        break;
+
       case 'ERROR':
         setError(msg.message);
         if (gameRef.current) gameRef.current(msg);

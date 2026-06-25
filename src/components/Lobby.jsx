@@ -4,6 +4,9 @@ export default function Lobby({ onCreateRoom, onJoinRoom, onDevMode, lobbyState,
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [localError, setLocalError] = useState('');
+  const [showDevPass, setShowDevPass] = useState(false);
+  const [devPass, setDevPass] = useState('');
+  const [devPassError, setDevPassError] = useState('');
 
   function handleCreate() {
     if (!name.trim()) { setLocalError('Enter your name first'); return; }
@@ -20,11 +23,32 @@ export default function Lobby({ onCreateRoom, onJoinRoom, onDevMode, lobbyState,
     onJoinRoom(name.trim(), code.trim().toUpperCase());
   }
 
+  function confirmDevMode() {
+    if (devPass === 'adm1n') {
+      if (!connected) { setLocalError('Not connected'); return; }
+      onDevMode(name.trim() || 'Dev');
+    } else {
+      setDevPassError('Wrong password');
+    }
+  }
+
   const inRoom = !!lobbyState;
   const displayError = error || localError;
 
   const statusColor = status === 'open' ? '#2ecc71' : status === 'error' ? '#e74c3c' : '#f39c12';
   const statusText = status === 'open' ? 'Connected' : status === 'error' ? 'Reconnecting...' : 'Connecting...';
+
+  const devBtnStyle = {
+    fontFamily: 'var(--pixel)',
+    fontSize: 7,
+    padding: '10px 18px',
+    background: '#0a0f0a',
+    border: '2px solid #2ecc71',
+    color: '#2ecc71',
+    cursor: 'pointer',
+    letterSpacing: 1,
+    width: '100%',
+  };
 
   return (
     <div className="menu">
@@ -108,26 +132,47 @@ export default function Lobby({ onCreateRoom, onJoinRoom, onDevMode, lobbyState,
 
           <div style={{ textAlign: 'center', fontSize: 6, color: '#555' }}>─── OR ───</div>
 
-          <button
-            style={{
-              fontFamily: 'var(--pixel)',
-              fontSize: 7,
-              padding: '10px 18px',
-              background: '#0a0f0a',
-              border: '2px solid #2ecc71',
-              color: '#2ecc71',
-              cursor: 'pointer',
-              letterSpacing: 1,
-              width: '100%',
-            }}
-            onClick={() => {
-              if (!connected) { setLocalError('Not connected to server — retrying...'); return; }
-              setLocalError('');
-              onDevMode(name.trim() || 'Dev');
-            }}
-          >
-            ⚙ DEV MODE
-          </button>
+          {/* Dev mode with password gate */}
+          {!showDevPass ? (
+            <button style={devBtnStyle} onClick={() => setShowDevPass(true)}>
+              ⚙ DEV MODE
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <input
+                type="password"
+                value={devPass}
+                onChange={e => { setDevPass(e.target.value); setDevPassError(''); }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') confirmDevMode();
+                  if (e.key === 'Escape') { setShowDevPass(false); setDevPass(''); setDevPassError(''); }
+                }}
+                placeholder="Enter dev password..."
+                autoFocus
+                style={{
+                  fontFamily: 'var(--pixel)',
+                  fontSize: 8,
+                  background: '#0a0a0f',
+                  border: '1px solid #2ecc71',
+                  color: '#2ecc71',
+                  padding: '8px',
+                  outline: 'none',
+                }}
+              />
+              {devPassError && (
+                <div style={{ color: '#e74c3c', fontSize: 6 }}>{devPassError}</div>
+              )}
+              <button style={devBtnStyle} onClick={confirmDevMode}>
+                CONFIRM
+              </button>
+              <button
+                style={{ ...devBtnStyle, border: '1px solid #555', color: '#555', background: 'transparent' }}
+                onClick={() => { setShowDevPass(false); setDevPass(''); setDevPassError(''); }}
+              >
+                CANCEL
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -142,7 +187,7 @@ export default function Lobby({ onCreateRoom, onJoinRoom, onDevMode, lobbyState,
 
           <div style={{ border: '1px solid #1e3a5f', padding: 12, width: '100%' }}>
             <div style={{ fontSize: 7, color: '#7f8c8d', marginBottom: 8 }}>
-              PLAYERS ({lobbyState.players.length}/10)
+              PLAYERS ({lobbyState.players.length}/12)
             </div>
             {lobbyState.players.map(p => (
               <div key={p.id} style={{ fontSize: 7, color: '#ecf0f1', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>

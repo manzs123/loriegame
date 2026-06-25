@@ -101,6 +101,8 @@ const SPAWN_POSITIONS = [
   { x:1680, y:500  },
   { x:300,  y:800  },
   { x:1680, y:800  },
+  { x:1000, y:700  },
+  { x:650,  y:300  },
 ];
 
 const TELEPORT_PORTALS = [
@@ -505,6 +507,25 @@ class GameRoom {
       case 'FLOWER_RESPOND': this.handleFlowerRespond(socketId, msg.accept); break;
       case 'CCTV_VIEW': this.handleCCTVView(socketId, msg.roomId); break;
       case 'TELEPORT_TO': this.handleTeleport(socketId, msg.roomId); break;
+      case 'DEV_SWITCH_CHAR': {
+        if (!this.state) break;
+        // Only allow in single-player (dev) sessions
+        const humanPlayers = this.state.players.filter(p => !p.isAI);
+        if (humanPlayers.length > 1) break;
+        const newChar = this.state.players.find(p => p.charId === msg.charId);
+        if (!newChar) break;
+        // Remove socket from current player
+        const oldChar = this.state.players.find(p => p.socketId === socketId);
+        if (oldChar) { oldChar.socketId = null; oldChar.isAI = true; }
+        // Assign to new character
+        newChar.socketId = socketId;
+        newChar.isAI = false;
+        const client = this.clients.get(socketId);
+        if (client) client.charId = msg.charId;
+        this.sendTo(socketId, { type: 'DEV_CHAR_CHANGED', yourCharId: msg.charId, yourIsVillain: newChar.isVillain });
+        this.broadcastState();
+        break;
+      }
       default: break;
     }
   }
@@ -830,7 +851,12 @@ class GameRoom {
     const allHumanVoted = humanAlive.every(p => s.votes[p.charId] !== undefined);
 
     if (allHumanVoted) {
-      this.finalizeVote();
+      // Skip to 5s remaining instead of finalizing immediately
+      // reviewStartTick is set so that 60 - floor((tick - reviewStartTick) / 30) = 5
+      // => reviewStartTick = tick - 55 * 30
+      const targetElapsed = 55; // 60 - 5 = 55 seconds elapsed
+      this.reviewStartTick = this.tick - targetElapsed * 30;
+      this.broadcastState();
     } else {
       this.broadcastState();
     }
@@ -855,6 +881,7 @@ class GameRoom {
     s.voteTimeLeft = 0;
     s.bodies = [];
     s.lorieKilledToday = false;
+    s.ejected = ejected || null;
 
     if (ejected) {
       const ejectedPlayer = s.players.find(p => p.charId === ejected);
@@ -1014,6 +1041,7 @@ class GameRoom {
       dayTimer: s.dayTimer,
       winner: s.winner,
       lorieCharId: s.lorieCharId,
+      ejected: s.ejected,
     };
   }
 
