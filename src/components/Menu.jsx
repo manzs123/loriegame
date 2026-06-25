@@ -9,7 +9,8 @@ export default function Menu({ onStart }) {
         Complete your tasks.<br />
         Escape the facility.<br />
         <br />
-        But beware... Lorie is watching.
+        But beware... Lorie is watching. <br />
+        <i>Game is based on true events.</i>
       </div>
       <button className="btn" onClick={onStart}>
         ▶ START GAME
