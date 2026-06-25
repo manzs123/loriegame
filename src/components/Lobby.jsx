@@ -53,7 +53,7 @@ export default function Lobby({ onCreateRoom, onJoinRoom, onDevMode, lobbyState,
   return (
     <div className="menu">
       <div className="menu-title">LORIE IS WITH US</div>
-      <div className="menu-subtitle">multiplayer social deduction</div>
+      <div className="menu-subtitle">multiplayer social deduction, based on true story</div>
 
       {/* Connection status dot */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 7 }}>
