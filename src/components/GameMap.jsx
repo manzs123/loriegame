@@ -20,6 +20,26 @@ export default function GameMap({ state, myCharId, devMode: devModeProp = false 
 
   useEffect(() => { stateRef.current = state; }, [state]);
 
+  // Scale canvas CSS size to fit its container while preserving 800×600 aspect ratio.
+  // ResizeObserver fires whenever the parent resizes (orientation change, panel toggle, etc.)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+    function resize() {
+      const w = parent.clientWidth;
+      const h = parent.clientHeight;
+      const scale = Math.min(w / CANVAS_W, h / CANVAS_H);
+      canvas.style.width  = Math.floor(CANVAS_W * scale) + 'px';
+      canvas.style.height = Math.floor(CANVAS_H * scale) + 'px';
+    }
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(parent);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     let raf;
     function loop() {
@@ -39,7 +59,7 @@ export default function GameMap({ state, myCharId, devMode: devModeProp = false 
       width={CANVAS_W}
       height={CANVAS_H}
       className="game-canvas"
-      style={{ border: '2px solid #1e3a5f', display: 'block', width: '100%', height: '100%', objectFit: 'contain' }}
+      style={{ border: '2px solid #1e3a5f', display: 'block', imageRendering: 'pixelated' }}
     />
   );
 }

@@ -26,6 +26,8 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
   const stateRef = useRef(gameState);
   stateRef.current = gameState;
 
+  const [panelOpen, setPanelOpen] = useState(() => window.innerWidth > 768);
+
   const [skillTargetOpen, setSkillTargetOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [kaiOpen, setKaiOpen] = useState(false);
@@ -427,15 +429,26 @@ export default function Game({ myCharId, myIsVillain, gameState, send, onGameOve
         )}
       </div>
 
-      <SidePanel
-        state={s}
-        myCharId={myCharId}
-        myCharDef={myCharDef}
-        onUseSkill={handleUseSkill}
-        onInteract={handleInteract}
-        onChat={handleChat}
-        chatMessages={chatMessages}
-      />
+      {/* Panel toggle button — only visible on mobile */}
+      <button
+        className="panel-toggle-btn"
+        onClick={() => setPanelOpen(o => !o)}
+        aria-label="Toggle panel"
+      >
+        {panelOpen ? '✕' : '☰'}
+      </button>
+
+      <div className={`side-panel-wrap${panelOpen ? ' open' : ''}`}>
+        <SidePanel
+          state={s}
+          myCharId={myCharId}
+          myCharDef={myCharDef}
+          onUseSkill={handleUseSkill}
+          onInteract={handleInteract}
+          onChat={handleChat}
+          chatMessages={chatMessages}
+        />
+      </div>
 
       {s?.reviewActive && (
         <ReviewModal state={s} myCharId={myCharId} onVote={handleVote} />
