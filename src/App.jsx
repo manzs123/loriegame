@@ -1,7 +1,36 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSocket } from './hooks/useSocket.js';
 import Lobby from './components/Lobby.jsx';
 import Game from './components/Game.jsx';
+
+function RotateOverlay() {
+  const [portrait, setPortrait] = useState(
+    () => window.matchMedia('(orientation: portrait) and (max-width: 768px)').matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: portrait) and (max-width: 768px)');
+    const handler = e => setPortrait(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Attempt hardware lock (only works in fullscreen/PWA)
+  useEffect(() => {
+    try { screen.orientation?.lock('landscape').catch(() => {}); } catch (_) {}
+  }, []);
+
+  if (!portrait) return null;
+  return (
+    <div className="rotate-overlay">
+      <div className="rotate-content">
+        <div className="rotate-icon">↻</div>
+        <div className="rotate-text">ROTATE YOUR DEVICE</div>
+        <div className="rotate-sub">This game requires landscape mode</div>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [screen, setScreen] = useState('lobby'); // lobby | game
@@ -107,6 +136,7 @@ export default function App() {
 
   return (
     <>
+      <RotateOverlay />
       {screen === 'lobby' && (
         <Lobby
           onCreateRoom={handleCreateRoom}
