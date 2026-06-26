@@ -5,11 +5,11 @@ import Game from './components/Game.jsx';
 
 function RotateOverlay() {
   const [portrait, setPortrait] = useState(
-    () => window.matchMedia('(orientation: portrait) and (max-width: 768px)').matches
+    () => window.matchMedia('(orientation: portrait) and (max-width: 1366px)').matches
   );
 
   useEffect(() => {
-    const mq = window.matchMedia('(orientation: portrait) and (max-width: 768px)');
+    const mq = window.matchMedia('(orientation: portrait) and (max-width: 1366px)');
     const handler = e => setPortrait(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
