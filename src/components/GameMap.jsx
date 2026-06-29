@@ -486,7 +486,7 @@ function drawBody(ctx, body) {
   ctx.fillStyle = '#e74c3c';
   ctx.font = '5px "Press Start 2P", monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(body.killedName, x, y - 15);
+  ctx.fillText(body.killedName || '', x, y - 15);
 
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
@@ -583,9 +583,9 @@ function drawPlayer(ctx, player, isMe, time = 0, viewerIsDead = false) {
   } else {
     ctx.font = '5px "Press Start 2P", monospace';
     ctx.fillStyle = '#000000cc';
-    ctx.fillText(player.name, x + 1, y - s - 4);
+    ctx.fillText(player.name || '', x + 1, y - s - 4);
     ctx.fillStyle = player.color || '#cccccc';
-    ctx.fillText(player.name, x, y - s - 5);
+    ctx.fillText(player.name || '', x, y - s - 5);
   }
 }
 
@@ -623,7 +623,7 @@ function drawGhostPlayer(ctx, player, isMe) {
   ctx.fillStyle = '#aaaacc';
   ctx.font = '5px "Press Start 2P", monospace';
   ctx.textAlign = 'center';
-  ctx.fillText((isMe ? '▶ ' : '') + player.name, x, y - s - 5);
+  ctx.fillText((isMe ? '▶ ' : '') + (player.name || ''), x, y - s - 5);
 
   ctx.restore();
 }

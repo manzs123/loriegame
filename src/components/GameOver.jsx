@@ -40,8 +40,8 @@ export default function GameOver({ winner, myCharId, myIsVillain, lorieCharId, o
           : 'Lorie eliminated enough crewmates to take control of the facility.'}
       </div>
 
-      <button className="btn" onClick={onRestart} style={{ marginTop: 8 }}>
-        BACK TO LOBBY
+      <button className="btn btn-green" onClick={onRestart} style={{ marginTop: 8, fontSize: 9, padding: '14px 28px', letterSpacing: 2 }}>
+        RETURN TO HOME
       </button>
     </div>
   );

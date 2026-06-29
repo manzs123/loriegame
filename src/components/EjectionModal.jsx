@@ -10,12 +10,9 @@ export default function EjectionModal({ ejectedName, ejectedCharId, wasVillain, 
   const hat = charDef?.hat || '#555555';
 
   useEffect(() => {
-    // Phase 1 starts at 1.5s
-    const t1 = setTimeout(() => setPhase(1), 1500);
-    // Phase 2 starts at 3s
-    const t2 = setTimeout(() => setPhase(2), 3000);
-    // Call onDone at 4.2s
-    const t3 = setTimeout(() => onDone(), 4200);
+    const t1 = setTimeout(() => setPhase(1), 2000);  // role reveal at 2s
+    const t2 = setTimeout(() => setPhase(2), 3800);  // float + fade at 3.8s
+    const t3 = setTimeout(() => onDone(), 5000);     // resume at 5s
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -29,9 +26,14 @@ export default function EjectionModal({ ejectedName, ejectedCharId, wasVillain, 
       <div className="ejection-stars" />
 
       <div className="ejection-content">
+        {/* "HAS BEEN KICKED!" banner */}
+        <div className="ejection-banner">
+          ⚠ PLAYER KICKED ⚠
+        </div>
+
         {/* Character sprite */}
         <div className="ejection-char">
-          <PixelChar color={color} hat={hat} size={80} />
+          <PixelChar color={color} hat={hat} size={110} />
         </div>
 
         {/* Name */}

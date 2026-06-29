@@ -869,13 +869,22 @@ class GameRoom {
       counts[id] = (counts[id] || 0) + 1;
     });
 
+    // Count skip votes separately; only player votes determine ejection
+    const skipCount = counts['skip'] || 0;
+    delete counts['skip'];
+
+    // Find highest vote count among players
     let maxVotes = 0;
-    let ejected = null;
-    for (const [id, count] of Object.entries(counts)) {
-      if (count > maxVotes) { maxVotes = count; ejected = id; }
+    for (const count of Object.values(counts)) {
+      if (count > maxVotes) maxVotes = count;
     }
-    const tied = Object.values(counts).filter(c => c === maxVotes).length > 1;
-    if (tied || ejected === 'skip') ejected = null;
+
+    // Always eject the highest-voted player; on ties pick randomly
+    let ejected = null;
+    if (maxVotes > 0) {
+      const tiedCandidates = Object.keys(counts).filter(id => counts[id] === maxVotes);
+      ejected = tiedCandidates[Math.floor(Math.random() * tiedCandidates.length)];
+    }
 
     s.reviewActive = false;
     s.voteTimeLeft = 0;

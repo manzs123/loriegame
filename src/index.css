@@ -697,13 +697,30 @@ body {
   to { transform: translateY(-120px); opacity: 0; }
 }
 
+.ejection-banner {
+  font-family: var(--pixel);
+  font-size: clamp(10px, 2.5vw, 16px);
+  color: #e74c3c;
+  text-align: center;
+  letter-spacing: 3px;
+  text-shadow: 0 0 24px #e74c3c, 0 0 48px #e74c3c88;
+  animation: ejectionBannerPulse 0.6s ease-out both, pulse 1.2s 0.6s ease-in-out infinite;
+  margin-bottom: 4px;
+}
+
+@keyframes ejectionBannerPulse {
+  from { transform: scale(1.4); opacity: 0; letter-spacing: 12px; }
+  to   { transform: scale(1);   opacity: 1; letter-spacing: 3px; }
+}
+
 .ejection-name {
   font-family: var(--pixel);
-  font-size: clamp(16px, 4vw, 28px);
+  font-size: clamp(22px, 5vw, 40px);
   color: #ecf0f1;
   text-align: center;
   animation: ejectionNameSlide 0.5s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-  letter-spacing: 4px;
+  letter-spacing: 6px;
+  text-shadow: 0 0 20px rgba(255,255,255,0.4);
 }
 
 @keyframes ejectionNameSlide {
@@ -969,6 +986,13 @@ body {
   }
 }
 
+/* Show D-pad on touch tablets (iPads, etc.) wider than 768px */
+@media (pointer: coarse) and (min-width: 769px) {
+  .mobile-dpad {
+    display: flex;
+  }
+}
+
 /* ---- ROTATE OVERLAY ---- */
 .rotate-overlay {
   display: none;
@@ -980,7 +1004,7 @@ body {
   justify-content: center;
 }
 
-@media screen and (orientation: portrait) and (max-width: 768px) {
+@media screen and (orientation: portrait) and (max-width: 1366px) and (pointer: coarse) {
   .rotate-overlay {
     display: flex;
   }
