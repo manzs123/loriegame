@@ -1,24 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PixelChar from './PixelChar.jsx';
 import { CHARACTERS } from '../game/constants.js';
 
 export default function EjectionModal({ ejectedName, ejectedCharId, wasVillain, onDone }) {
   const [phase, setPhase] = useState(0);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   const charDef = CHARACTERS.find(c => c.id === ejectedCharId);
   const color = charDef?.color || '#888888';
   const hat = charDef?.hat || '#555555';
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 2000);  // role reveal at 2s
-    const t2 = setTimeout(() => setPhase(2), 3800);  // float + fade at 3.8s
-    const t3 = setTimeout(() => onDone(), 5000);     // resume at 5s
+    const t1 = setTimeout(() => setPhase(1), 2000);
+    const t2 = setTimeout(() => setPhase(2), 3800);
+    const t3 = setTimeout(() => onDoneRef.current(), 5000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, [onDone]);
+  }, []); // run once on mount — timers must not reset on re-render
 
   return (
     <div className={`ejection-overlay${phase === 2 ? ' phase-2' : ''}`}>
